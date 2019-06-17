@@ -1,0 +1,277 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "Using TensorFlow backend.\n",
+      "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/importlib/_bootstrap.py:219: RuntimeWarning: compiletime version 3.6 of module 'tensorflow.python.framework.fast_tensor_util' does not match runtime version 3.7\n",
+      "  return f(*args, **kwds)\n"
+     ]
+    }
+   ],
+   "source": [
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt\n",
+    "import os\n",
+    "from collections import deque\n",
+    "from keras.models import Sequential\n",
+    "from keras.layers import Dense\n",
+    "from keras.optimizers import Adam\n",
+    "import random"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class Agent:\n",
+    "    def __init__(self,state_size,action_size):\n",
+    "        self.state_size=state_size\n",
+    "        self.action_size=action_size\n",
+    "        self.memory=deque(maxlen=2000)\n",
+    "        self.gamma=0.95 #Discount factor\n",
+    "        self.epsilon=1.0 #100% random exploration in the beginning\n",
+    "        self.epsilon_decay=0.995 #We will now use 5% of our knowledge in the next episode and trust our memory.\n",
+    "        self.epsilon_min=0.01\n",
+    "        self.learning_rate=0.001\n",
+    "        self.model=self._create_model()\n",
+    "        \n",
+    "    def _create_model(self):\n",
+    "        model=Sequential()\n",
+    "        model.add(Dense(24,input_dim=self.state_size,activation='relu'))\n",
+    "        model.add(Dense(24,activation='relu'))\n",
+    "        model.add(Dense(self.action_size,activation='linear'))\n",
+    "        model.compile(loss='mse',optimizer=Adam(lr=0.001))\n",
+    "        return model\n",
+    "    \n",
+    "    def remember(self,state,action,reward,next_state,done):\n",
+    "        #Remember past experience\n",
+    "        self.memory.append((state,action,reward,next_state,done))\n",
+    "        \n",
+    "    def act(self,state):\n",
+    "        #Epsilon greedy method\n",
+    "        if np.random.rand()<=self.epsilon:\n",
+    "            #Take a random action\n",
+    "            return random.randrange(self.action_size)\n",
+    "        #Ask neural network to return in else\n",
+    "        return np.argmax(model.predict(state)[0])\n",
+    "    \n",
+    "    def train(self,batch_size=32):\n",
+    "        #Training using a replay buffer\n",
+    "        minibatch=random.sample(self.memory,batch_size)\n",
+    "        for experience in minibatch:\n",
+    "            state,action,reward,next_state,done=experience\n",
+    "            \n",
+    "            #We need X and Y\n",
+    "            \n",
+    "            if not done:\n",
+    "                #Game is not over.Use bellmon equation to approximate the reward\n",
+    "                target = reward + self.gamma*np.amax(self.model.predict(next_state)[0])\n",
+    "                \n",
+    "            else:\n",
+    "                #Game is over\n",
+    "                target=reward\n",
+    "                \n",
+    "            target_f=self.model.predict(state)\n",
+    "            target_f[0][action]=target\n",
+    "            \n",
+    "            #X=state,Y=target_f\n",
+    "            self.model.fit(state,target_f,epochs=1,verbose=0)\n",
+    "            \n",
+    "        if self.epsilon > self.epsilon_min:\n",
+    "            self.epsilon *= self.epsilon_decay\n",
+    "            #WE WILL Trust ourselves more then exploring as the exploration conitnues to epsilon should become less.\n",
+    "            \n",
+    "    def load(self,name):\n",
+    "        self.model.load_weights(name)\n",
+    "        \n",
+    "    def save(self,name):\n",
+    "        self.model.save_weights(name)\n",
+    "                \n",
+    "                \n",
+    "        "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array([[-0.22554713, -0.11230746]], dtype=float32)"
+      ]
+     },
+     "execution_count": 7,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "x=np.random.rand(1,4)\n",
+    "model.predict(x)\n",
+    "#Here basically we give an input of shape 1,4 and this gives us values. Like here -0.076 gives the value of reward if we \n",
+    "#take action 0 and -0.16 reward if we take action 1.\n",
+    "#So we have to take the action which gives us maximum reward"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Training the DQN Agent"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import gym"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Create an environemnt\n",
+    "env = gym.make('CartPole-v0')\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "n_episodes=1000\n",
+    "output_dir=\"carpole_model/\"\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "agent=Agent(state_size=4,action_size=2)\n",
+    "done = False\n",
+    "state_size=4\n",
+    "action_size=2"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Game episode :0/20 High score :59 Exploration rate:0.99\n"
+     ]
+    },
+    {
+     "ename": "OSError",
+     "evalue": "Unable to create file (unable to open file: name = 'carpole_model/weights_0000.hdf5', errno = 2, error message = 'No such file or directory', flags = 13, o_flags = 602)",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31mOSError\u001b[0m                                   Traceback (most recent call last)",
+      "\u001b[0;32m<ipython-input-17-692c86288c2a>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m()\u001b[0m\n\u001b[1;32m     19\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     20\u001b[0m     \u001b[0;32mif\u001b[0m \u001b[0me\u001b[0m\u001b[0;34m%\u001b[0m\u001b[0;36m50\u001b[0m\u001b[0;34m==\u001b[0m\u001b[0;36m0\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m---> 21\u001b[0;31m         \u001b[0magent\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0msave\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0moutput_dir\u001b[0m\u001b[0;34m+\u001b[0m\u001b[0;34m\"weights_\"\u001b[0m\u001b[0;34m+\u001b[0m\u001b[0;34m'{:04d}'\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mformat\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0me\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m+\u001b[0m\u001b[0;34m\".hdf5\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m     22\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     23\u001b[0m \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m\"Deep Q learning Model trained\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m<ipython-input-13-18c8ca72a625>\u001b[0m in \u001b[0;36msave\u001b[0;34m(self, name)\u001b[0m\n\u001b[1;32m     61\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     62\u001b[0m     \u001b[0;32mdef\u001b[0m \u001b[0msave\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0mname\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m---> 63\u001b[0;31m         \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mmodel\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0msave_weights\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mname\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m     64\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     65\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m/usr/local/lib/python3.7/site-packages/keras/models.py\u001b[0m in \u001b[0;36msave_weights\u001b[0;34m(self, filepath, overwrite)\u001b[0m\n\u001b[1;32m    749\u001b[0m             \u001b[0mlayers\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mlayers\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    750\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 751\u001b[0;31m         \u001b[0mf\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mh5py\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mFile\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mfilepath\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m'w'\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    752\u001b[0m         \u001b[0mtopology\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0msave_weights_to_hdf5_group\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mf\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mlayers\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    753\u001b[0m         \u001b[0mf\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mflush\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m/usr/local/lib/python3.7/site-packages/h5py/_hl/files.py\u001b[0m in \u001b[0;36m__init__\u001b[0;34m(self, name, mode, driver, libver, userblock_size, swmr, **kwds)\u001b[0m\n\u001b[1;32m    310\u001b[0m             \u001b[0;32mwith\u001b[0m \u001b[0mphil\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    311\u001b[0m                 \u001b[0mfapl\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mmake_fapl\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mdriver\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mlibver\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m**\u001b[0m\u001b[0mkwds\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 312\u001b[0;31m                 \u001b[0mfid\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mmake_fid\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mname\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mmode\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0muserblock_size\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mfapl\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mswmr\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mswmr\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    313\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    314\u001b[0m                 \u001b[0;32mif\u001b[0m \u001b[0mswmr_support\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m/usr/local/lib/python3.7/site-packages/h5py/_hl/files.py\u001b[0m in \u001b[0;36mmake_fid\u001b[0;34m(name, mode, userblock_size, fapl, fcpl, swmr)\u001b[0m\n\u001b[1;32m    146\u001b[0m         \u001b[0mfid\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mh5f\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mcreate\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mname\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mh5f\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mACC_EXCL\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mfapl\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mfapl\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mfcpl\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mfcpl\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    147\u001b[0m     \u001b[0;32melif\u001b[0m \u001b[0mmode\u001b[0m \u001b[0;34m==\u001b[0m \u001b[0;34m'w'\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 148\u001b[0;31m         \u001b[0mfid\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mh5f\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mcreate\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mname\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mh5f\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mACC_TRUNC\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mfapl\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mfapl\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mfcpl\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mfcpl\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    149\u001b[0m     \u001b[0;32melif\u001b[0m \u001b[0mmode\u001b[0m \u001b[0;34m==\u001b[0m \u001b[0;34m'a'\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    150\u001b[0m         \u001b[0;31m# Open in append mode (read/write).\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32mh5py/_objects.pyx\u001b[0m in \u001b[0;36mh5py._objects.with_phil.wrapper\u001b[0;34m()\u001b[0m\n",
+      "\u001b[0;32mh5py/_objects.pyx\u001b[0m in \u001b[0;36mh5py._objects.with_phil.wrapper\u001b[0;34m()\u001b[0m\n",
+      "\u001b[0;32mh5py/h5f.pyx\u001b[0m in \u001b[0;36mh5py.h5f.create\u001b[0;34m()\u001b[0m\n",
+      "\u001b[0;31mOSError\u001b[0m: Unable to create file (unable to open file: name = 'carpole_model/weights_0000.hdf5', errno = 2, error message = 'No such file or directory', flags = 13, o_flags = 602)"
+     ]
+    }
+   ],
+   "source": [
+    "for e in range(n_episodes):\n",
+    "    state=env.reset()\n",
+    "    state = np.reshape(state,[1,state_size])\n",
+    "    batch_size=32\n",
+    "    \n",
+    "    for t in range(500):\n",
+    "        env.render()\n",
+    "        action=agent.act(state) # 0 or 1\n",
+    "        next_state,reward,done,other_info=env.step(action)\n",
+    "        reward = reward if not done else -10\n",
+    "        next_state=np.reshape(next_state,[1,state_size])\n",
+    "        agent.remember(state,action,reward,next_state,done) #Experiece for the agent\n",
+    "        \n",
+    "        if done:\n",
+    "            print(\"Game episode :{}/{} High score :{} Exploration rate:{:.2}\".format(e,20,t,agent.epsilon))\n",
+    "            break\n",
+    "    if len(agent.memory)> batch_size:\n",
+    "        agent.train(batch_size)\n",
+    "    \n",
+    "    if e%50==0:\n",
+    "        agent.save(output_dir+\"weights_\"+'{:04d}'.format(e)+\".hdf5\")\n",
+    "        \n",
+    "print(\"Deep Q learning Model trained\")\n",
+    "env.close()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
